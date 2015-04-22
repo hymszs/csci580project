@@ -2,6 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" >
 <head>
     <title>Ray trace reflection</title>
+    <script src="jquery-2.1.3.min.js"></script>
     <script type="text/javascript" src="Vector3.js"></script>
     <script type="text/javascript" src="Ray3.js"></script>
     <script type="text/javascript" src="IntersectResult.js"></script>
@@ -64,29 +65,79 @@ function rayTraceReflection(canvas, scene, camera, maxReflect) {
             pixels[i++] = color.g * 255;
             pixels[i++] = color.b * 255;
             pixels[i++] = 255;
+            console.log("one pixel")
         }
     }
 
     ctx.putImageData(imgdata, 0, 0);
 }
+
+
+$.get( "teapot.txt", function( data,Tri ) {
+  var lines = data.split("\n");
+  var Points = new Array();
+  var TriList=new Array();
+  for (var i = 0, len = lines.length; i < len; i++) 
+    {
+        vectors=lines[i].split(" ");
+        if(vectors[0]=="v")
+        {        
+            Points.push(new Vector3(Number(vectors[1]),Number(vectors[2]),Number(vectors[3])));
+        }
+        if(vectors[0]=="f")
+        {
+            TriList.push(new Triangle(Points[Number(vectors[1])-1],Points[Number(vectors[2])-1],Points[Number(vectors[3])-1]));            
+        }
+    }
+   
+   
+   var plane = new Plane(new Vector3(0, 1, 0), 0);
+var sphere1 = new Sphere(new Vector3(-10, 10, -10), 10);
+var tri1 = new Triangle(new Vector3(5, 5, -10), new Vector3(5,10,-10),new Vector3(10,10,-10));
+plane.material = new CheckerMaterial(0.1, 0.5);
+sphere1.material = new PhongMaterial(Color.red, Color.white, 16, 0.25);
+tri1.material = new PhongMaterial(Color.blue, Color.white, 16, 0.25);
+
+    console.log(TriList[0].A);
+    console.log(TriList[0].B);
+    console.log(TriList[0].C);
+   for(var i=0;i<TriList.length;i++)
+    {
+        TriList[i].material = new PhongMaterial(Color.blue, Color.white, 16, 0.25);
+    }
+    var test=new Array();
+    for(var i=0;i<TriList.length;i++)
+    {
+        test.push(TriList[i]);
+    }
+    test.push(plane);
+    test.push(sphere1);
+    test.push(tri1);
+    
+    //Begin Render
+    
+
+var u=new Union(test);
+console.log("load finished")
+rayTraceReflection(
+    document.getElementById('renderCanvas'), 
+    u,
+    new PerspectiveCamera(new Vector3(0, 5, 15), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90),
+    3);
+    
+    
+    
+    
+});
+
+
     </script>
 </head>
 <body onload="">
 <canvas id="renderCanvas" width="256" height="256"></canvas>
 <br />
 <textarea id="code" rows="12" cols="100">
-var plane = new Plane(new Vector3(0, 1, 0), 0);
-var sphere1 = new Sphere(new Vector3(-10, 10, -10), 10);
-var tri1 = new Triangle(new Vector3(5, 5, -10), new Vector3(5,-5,-10),new Vector3(10,10,-10));
-plane.material = new CheckerMaterial(0.1, 0.5);
-sphere1.material = new PhongMaterial(Color.red, Color.white, 16, 0.25);
-tri1.material = new PhongMaterial(Color.blue, Color.white, 16, 0.25);
-
-rayTraceReflection(
-    document.getElementById('renderCanvas'), 
-    new Union([plane, sphere1, tri1]),
-    new PerspectiveCamera(new Vector3(0, 5, 15), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90),
-    3);</textarea>
+</textarea>
 <br/>
 <button onclick="eval(document.getElementById('code').value)">Run</button>
 </body>
