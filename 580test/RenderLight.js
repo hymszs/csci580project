@@ -34,7 +34,7 @@
                     if (lightSample != lightSample.zero) {
                         var NdotL = result.normal.dot(lightSample.L);
 
-                        // 夾角小約90度，即光源在平面的前面
+                        // <90, in front of the screen
                         if (NdotL >= 0)
                             color = color.add(lightSample.EL.multiply(NdotL));
                     }

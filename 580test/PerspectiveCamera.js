@@ -2,7 +2,11 @@
  * @requires Vector3
  */
 
-PerspectiveCamera = function(eye, front, up, fov) { this.eye = eye; this.front = front; this.refUp = up; this.fov = fov; };
+PerspectiveCamera = function(eye, front, up, fov) {
+ this.eye = eye; 
+ this.front = front;
+this.refUp = up; 
+this.fov = fov; };
 
 PerspectiveCamera.prototype = {
     initialize : function() {

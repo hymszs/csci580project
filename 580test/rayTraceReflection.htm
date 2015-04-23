@@ -1,5 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" >
+﻿<html xmlns="http://www.w3.org/1999/xhtml" >
 <head>
     <title>Ray trace reflection</title>
     <script src="jquery-2.1.3.min.js"></script>
@@ -14,8 +13,16 @@
     <script type="text/javascript" src="CheckerMaterial.js"></script>
     <script type="text/javascript" src="PhongMaterial.js"></script>
     <script type="text/javascript" src="Triangle.js"></script>
+
+    <script type="text/javascript" src="LightSample.js"></script>
+    <script type="text/javascript" src="PointLight.js"></script>
+    <script type="text/javascript" src="DirectionalLight.js"></script>
+    <!-- // <script type="text/javascript" src="RenderLight.js"></script> -->
+
+
     <script type="text/javascript">
 function rayTraceRecursive(scene, ray, maxReflect) {
+
     var result = scene.intersect(ray);
     
     if (result.geometry) {
@@ -25,7 +32,9 @@ function rayTraceRecursive(scene, ray, maxReflect) {
         
         if (reflectiveness > 0 && maxReflect > 0) {
             var r = result.normal.multiply(-2 * result.normal.dot(ray.direction)).add(ray.direction);
+            
             ray = new Ray3(result.position, r);
+            alert(result.position.x,result.position.y,result.position.z);
             var reflectedColor = rayTraceRecursive(scene, ray, maxReflect - 1);
             color = color.add(reflectedColor.multiply(reflectiveness));
         }
@@ -33,6 +42,83 @@ function rayTraceRecursive(scene, ray, maxReflect) {
     }
     else
         return Color.black;
+}
+
+
+function rayTraceShadow(canvas,scene,lights,camera,maxReflect)
+{
+     if (!canvas || !canvas.getContext) 
+        return;
+
+    var ctx = canvas.getContext("2d");
+    if (!ctx.getImageData)
+        return;
+
+    var w = canvas.attributes.width.value;
+    var h = canvas.attributes.height.value;
+    ctx.fillStyle = "rgb(0,0,0)";
+    ctx.fillRect(0, 0, w, h);
+
+    var imgdata = ctx.getImageData(0, 0, w, h);
+    var pixels = imgdata.data;
+
+    scene.initialize();
+    camera.initialize();
+    //soft shadow lights
+       for (var k in lights)
+        lights[k].initialize();
+
+
+
+ var i = 0;
+    for (var y = 0; y < h; y++) {
+        var sy = 1 - y / h;
+        for (var x = 0; x < w; x++) {
+            var sx = x / w;
+            var ray = camera.generateRay(sx, sy);
+            var color = rayTraceRecursive(scene, ray, maxReflect);
+            pixels[i++] = color.r * 255;
+            pixels[i++] = color.g * 255;
+            pixels[i++] = color.b * 255; 
+            pixels[i++] = 255;
+            console.log("one pixel")
+        }
+    }
+
+
+    var i = 0;
+    for (var y = 0; y < h; y++) {
+        var sy = 1 - y / h;
+        for (var x = 0; x < w; x++) {
+            var sx = x / w;
+            var ray = camera.generateRay(sx, sy);
+            var result = scene.intersect(ray);
+            if (result.geometry) {
+                var color = Color.black;
+                for (var k in lights) {
+                    var lightSample = lights[k].sample(scene, result.position);
+
+                    if (lightSample != lightSample.zero) {
+                        var NdotL = result.normal.dot(lightSample.L);
+
+                        // < 90, light in fornt of the screen
+                        if (NdotL >= 0)
+                            color = color.add(lightSample.EL.multiply(NdotL));
+                    }
+                }
+                pixels[i] += color.r * 255;
+                pixels[i + 1] += color.g * 255;
+                pixels[i + 2] += color.b * 255;
+                pixels[i + 3] = 255;
+            }
+            i += 4;
+        }
+    }
+
+   
+
+    ctx.putImageData(imgdata, 0, 0);
+
 }
 
 function rayTraceReflection(canvas, scene, camera, maxReflect) {
@@ -73,6 +159,7 @@ function rayTraceReflection(canvas, scene, camera, maxReflect) {
 }
 
 
+
 $.get( "teapot.txt", function( data,Tri ) {
   var lines = data.split("\n");
   var Points = new Array();
@@ -91,12 +178,15 @@ $.get( "teapot.txt", function( data,Tri ) {
     }
    
    
-   var plane = new Plane(new Vector3(0, 1, 0), 0);
+var plane = new Plane(new Vector3(0, 1, 0), 0);
 var sphere1 = new Sphere(new Vector3(-10, 10, -10), 10);
-var tri1 = new Triangle(new Vector3(5, 5, -10), new Vector3(5,10,-10),new Vector3(10,10,-10));
-plane.material = new CheckerMaterial(0.1, 0.5);
+var sphere2 = new Sphere(new Vector3(13,10,-10),7);
+var tri1 = new Triangle(new Vector3(0, 5, -10), new Vector3(0,10,-10), new Vector3(5,10,-10));
+// plane.material = new  CheckerMaterial(0.1, 0.5);
+plane.material= new PhongMaterial(Color.green, Color.white,16,0.25);
 sphere1.material = new PhongMaterial(Color.red, Color.white, 16, 0.25);
 tri1.material = new PhongMaterial(Color.blue, Color.white, 16, 0.25);
+sphere2.material=new PhongMaterial(Color.blue,Color.white,16,0.25);
 
     console.log(TriList[0].A);
     console.log(TriList[0].B);
@@ -106,39 +196,56 @@ tri1.material = new PhongMaterial(Color.blue, Color.white, 16, 0.25);
         TriList[i].material = new PhongMaterial(Color.blue, Color.white, 16, 0.25);
     }
     var test=new Array();
-    for(var i=0;i<TriList.length;i++)
-    {
-        test.push(TriList[i]);
-    }
+    // for(var i=0;i<TriList.length;i++)
+    // {
+    //     test.push(TriList[i]);
+    // }
     test.push(plane);
     test.push(sphere1);
     test.push(tri1);
+    test.push(sphere2);
     
     //Begin Render
     
 
 var u=new Union(test);
 console.log("load finished")
-rayTraceReflection(
+// rayTraceReflection(
+//     document.getElementById('renderCanvas2'), 
+//     u,
+//     new PerspectiveCamera(new Vector3(0, 5, 15), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90),
+//     40);
+
+var lights = [];
+
+for (var x = 10; x <= 30; x += 4)
+    for (var z = 20; z <= 40; z += 4)
+        lights.push(new PointLight(Color.white.multiply(8), new Vector3(x, 50, z))); 
+
+var fillLight;
+fillLight = new DirectionalLight(Color.white.multiply(0.25), new Vector3(1.5,1,0.5));
+
+fillLight.shadow = false;
+lights.push(fillLight);
+
+rayTraceShadow( 
     document.getElementById('renderCanvas'), 
     u,
+    lights,
     new PerspectiveCamera(new Vector3(0, 5, 15), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90),
     3);
-    
-    
-    
-    
 });
+
+
+
 
 
     </script>
 </head>
 <body onload="">
 <canvas id="renderCanvas" width="256" height="256"></canvas>
-<br />
-<textarea id="code" rows="12" cols="100">
-</textarea>
-<br/>
-<button onclick="eval(document.getElementById('code').value)">Run</button>
+  
+
+
 </body>
 </html>
