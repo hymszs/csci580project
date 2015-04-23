@@ -34,7 +34,7 @@ function rayTraceRecursive(scene, ray, maxReflect) {
             var r = result.normal.multiply(-2 * result.normal.dot(ray.direction)).add(ray.direction);
             
             ray = new Ray3(result.position, r);
-            alert(result.position.x,result.position.y,result.position.z);
+            // alert(result.position.x,result.position.y,result.position.z);
             var reflectedColor = rayTraceRecursive(scene, ray, maxReflect - 1);
             color = color.add(reflectedColor.multiply(reflectiveness));
         }
