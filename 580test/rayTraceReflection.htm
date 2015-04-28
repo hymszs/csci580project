@@ -17,7 +17,6 @@
     <script type="text/javascript" src="LightSample.js"></script>
     <script type="text/javascript" src="PointLight.js"></script>
     <script type="text/javascript" src="DirectionalLight.js"></script>
-    <!-- // <script type="text/javascript" src="RenderLight.js"></script> -->
 
 
     <script type="text/javascript">
@@ -34,7 +33,7 @@ function rayTraceRecursive(scene, ray, maxReflect) {
             var r = result.normal.multiply(-2 * result.normal.dot(ray.direction)).add(ray.direction);
             
             ray = new Ray3(result.position, r);
-            alert(result.position.x,result.position.y,result.position.z);
+            // alert(result.position.x,result.position.y,result.position.z);
             var reflectedColor = rayTraceRecursive(scene, ray, maxReflect - 1);
             color = color.add(reflectedColor.multiply(reflectiveness));
         }
@@ -91,25 +90,30 @@ function rayTraceShadow(canvas,scene,lights,camera,maxReflect)
         var sy = 1 - y / h;
         for (var x = 0; x < w; x++) {
             var sx = x / w;
+           
             var ray = camera.generateRay(sx, sy);
             var result = scene.intersect(ray);
+
             if (result.geometry) {
                 var color = Color.black;
                 for (var k in lights) {
                     var lightSample = lights[k].sample(scene, result.position);
-
+ alert("1");
                     if (lightSample != lightSample.zero) {
                         var NdotL = result.normal.dot(lightSample.L);
-
+   alert("2");
                         // < 90, light in fornt of the screen
                         if (NdotL >= 0)
                             color = color.add(lightSample.EL.multiply(NdotL));
                     }
+                alert("3");
                 }
+      alert("4");
                 pixels[i] += color.r * 255;
                 pixels[i + 1] += color.g * 255;
                 pixels[i + 2] += color.b * 255;
                 pixels[i + 3] = 255;
+               console.log("one pixel")
             }
             i += 4;
         }
@@ -159,7 +163,32 @@ function rayTraceReflection(canvas, scene, camera, maxReflect) {
 }
 
 
+function beginRender(){
+    // alert(document.getElementById("intensity").value);
+     Render();
 
+$('#intensity').keyup(function(event) {
+        Render();
+});
+// $('#locationbtn').addEventListener("click", changeLight);
+$('#fov').keyup(function(event) {
+        Render();
+});
+ 
+}
+
+function changeLight()
+{
+    // alert("change light");
+    Render();
+}
+function changeEyeView()
+{
+    Render();
+}
+
+function Render(){
+    // try
 $.get( "teapot.txt", function( data,Tri ) {
   var lines = data.split("\n");
   var Points = new Array();
@@ -196,31 +225,54 @@ sphere2.material=new PhongMaterial(Color.blue,Color.white,16,0.25);
         TriList[i].material = new PhongMaterial(Color.blue, Color.white, 16, 0.25);
     }
     var test=new Array();
-    // for(var i=0;i<TriList.length;i++)
-    // {
-    //     test.push(TriList[i]);
-    // }
+    for(var i=0;i<TriList.length;i++)
+    {
+        test.push(TriList[i]);
+    }
     test.push(plane);
     test.push(sphere1);
-    test.push(tri1);
-    test.push(sphere2);
-    
-    //Begin Render
-    
+    // test.push(tri1);
+    // test.push(sphere2);
+
 
 var u=new Union(test);
 console.log("load finished")
 // rayTraceReflection(
-//     document.getElementById('renderCanvas2'), 
+//     document.getElementById('renderCanvas'), 
 //     u,
 //     new PerspectiveCamera(new Vector3(0, 5, 15), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90),
 //     40);
 
 var lights = [];
 
-for (var x = 10; x <= 30; x += 4)
-    for (var z = 20; z <= 40; z += 4)
-        lights.push(new PointLight(Color.white.multiply(8), new Vector3(x, 50, z))); 
+var inten=parseInt(document.getElementById("intensity").value,10);
+
+var x=parseInt(document.getElementById("lightx").value,10);
+
+var y=parseInt(document.getElementById("lighty").value,10);
+
+var zget=parseInt(document.getElementById("lightz").value,10);
+// alert(x);
+// alert(y);
+// alert(zget);
+// var x=10;
+// var y=50;
+// var zget=20;
+var i=0;
+var j=0;
+var z=zget;
+while(i<5){ 
+    z=zget;
+    j=0;
+    while(j<5){      
+        lights.push(new PointLight(Color.white.multiply(inten), new Vector3(x, y, z))); 
+        z+=4;
+        j++;
+    }
+            x+=4;
+            i++;
+ }
+      
 
 var fillLight;
 fillLight = new DirectionalLight(Color.white.multiply(0.25), new Vector3(1.5,1,0.5));
@@ -228,24 +280,75 @@ fillLight = new DirectionalLight(Color.white.multiply(0.25), new Vector3(1.5,1,0
 fillLight.shadow = false;
 lights.push(fillLight);
 
+// rayTraceShadow( 
+//     document.getElementById('renderCanvas2'), 
+//     u,
+//     lights,
+//     new PerspectiveCamera(new Vector3(-5, 5, 5), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90),
+//     3);
+
+var eyex=parseInt(document.getElementById('eyex').value);
+var eyey=parseInt(document.getElementById('eyey').value);
+var eyez=parseInt(document.getElementById('eyez').value);
+var fov =parseInt(document.getElementById('fov').value);
 rayTraceShadow( 
     document.getElementById('renderCanvas'), 
     u,
     lights,
-    new PerspectiveCamera(new Vector3(0, 5, 15), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 90),
+    new PerspectiveCamera(new Vector3(eyex, eyey, eyez), new Vector3(0, 0, -1), new Vector3(0, 1, 0), fov),
     3);
+
 });
 
-
-
+}
 
 
     </script>
 </head>
-<body onload="">
+<body onload="beginRender()">
+   <!--  <canvas id="renderCanvas2" width="256" height="256"></canvas>
+    <br><br> -->
+
 <canvas id="renderCanvas" width="256" height="256"></canvas>
   
+<h2>Point light</h2>
+<div id="lightpara">
+            <h3>Location:</h3>
 
+                X: <input type="text" id="lightx" value="10"/>
 
+                Y: <input type="text" id="lighty" value="50" />
+
+                Z: <input type="text" id="lightz" value="20" />
+            
+                &nbsp;
+                <button id="locationbtn" onclick="changeLight()"> Change</button>
+ 
+           <h3>Intensity:</h3>
+
+                Intensity:  <input type="text" id="intensity" value="80" />
+
+          
+<br>
+<br>
+<h2>Eye View</h2>
+
+            <h3>Location:</h3>
+
+                X: <input type="text" id="eyex" value="0"/>
+
+                Y: <input type="text" id="eyey" value="5" />
+
+                Z: <input type="text" id="eyez" value="15" />
+            
+                &nbsp;
+                <button id="locationbtn" onclick="changeEyeView()"> Change</button>
+ 
+           <h3>Field Of View :</h3>
+
+                FOV:  <input type="text" id="fov" value="90" />
+            
+          
+</div>
 </body>
 </html>
